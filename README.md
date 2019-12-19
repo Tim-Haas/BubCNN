@@ -13,7 +13,11 @@ Program was tested for MATLAB 2019a.
 For more detailed information check the corresponding paper: 'BubCNN: Bubble detection using Faster RCNN
 and a shape regression network' (not yet published)
 
-
+Update BubCNN v1.1:
+-workaround in both programs to run in 2019b
+-bugfixing save/load button 
+-Updated Regression and Detection Module 
+-number of frames in Transfer Learning Module limited to 100 (->Speed up)
 
 
 Copyright (c) Institut für Industrieofenbau RWTH Aachen University  - All Rights Reserved
