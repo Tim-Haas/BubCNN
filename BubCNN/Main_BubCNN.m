@@ -55,6 +55,7 @@ else
             vid = VideoReader([PathName FileName]);
             i = 1;
             while hasFrame(vid)
+            %for u=1:2 %change if for whole Video
                 data.images(i).cdata = readFrame(vid);
                 i = i+1;
             end
@@ -75,30 +76,38 @@ else
 end
 
 
-
+%%
 f = uifigure;
 detectedellipses=cell(data.no_images,1);
+
 for evalimage=1:data.no_images
+    evalimage/data.no_images*100
     d = uiprogressdlg(f,'Title','Please Wait',...
         'Message','Run Faster RCNN module');
     d.Value = ((evalimage*2)-1)/(data.no_images*2);
     I=data.images(evalimage).cdata;
     [imheight,imwidth,colchannel]=size(I);
-    if colchannel>1
-        I=rgb2gray(I);
+    if colchannel<3
+        I=repmat (I,1,1,3);
     end
     [bboxes,scores] = detect(owndetector,I,'SelectStrongest',false,'NumStrongestRegions',Inf);
-    if ~isempty(scores)
-        [bboxes2,scores] = selectStrongestBbox(bboxes, scores,'OverlapThreshold',0.5);
-    end
+         P=find(scores<0.95);
+ bboxes(P,:)=[];
+ scores(P)=[];
     
+     if ~isempty(scores)
+         [bboxes2,scores2] = selectStrongestBbox(bboxes, scores,'OverlapThreshold',0.5,'RatioType','Min');
+     end
+
+
     % Annotate detections in the image.
+    fh=figure;
     subplot(1,2,1)
-    edg = insertShape((imadjust(I)),'rectangle',bboxes2, 'LineWidth', 2);
+    edg = insertShape(((rgb2gray(I))),'rectangle',bboxes2, 'LineWidth', 4, 'Color','blue');
     imshow(edg);
     title('Faster RCNN')
     subplot(1,2,2)
-    imshow(imadjust(I));
+    imshow((rgb2gray(I)));
     title('Faster RCNN + Regression CNN');
     [boxlength,~]=size(bboxes2);
     newbox=bboxes2;
@@ -132,13 +141,16 @@ for evalimage=1:data.no_images
         d.Value = evalimage/data.no_images;
         d.Message = 'Run shape regression CNN';
         hold on;
-        plotellipse(Bubbles(b,1:2),Bubbles(b,3),Bubbles(b,4),Bubbles(b,5),'r.');
+        y=plotellipse(Bubbles(b,1:2),Bubbles(b,3),Bubbles(b,4),Bubbles(b,5));
+        y.LineWidth=3;
+        y.Color='red';
+        %y.LineStyle=':'
         hold on;
         plot(Bubbles(b,1),Bubbles(b,2),'+','MarkerSize',10);
 
         
     end
-    %close all;
+   % delete (fh)
     detectedellipses{evalimage}=Bubbles(:,1:5);
 end
 delete (f)

@@ -66,7 +66,7 @@ else
     linespec = '';
 end
 % form the parameter vector
-npts = 100;
+npts = 400;
 t = linspace(0, 2*pi, npts);
 % Rotation matrix
 Q = [cos(alpha), -sin(alpha); sin(alpha) cos(alpha)];
