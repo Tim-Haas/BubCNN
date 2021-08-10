@@ -1,65 +1,61 @@
-% Copyright (c) Institut für Industrieofenbau RWTH Aachen University  - All Rights Reserved
+% Copyright (c) Institut fÃ¼r Industrieofenbau RWTH Aachen University  - All Rights Reserved
 % Unauthorized copying of this file, via any medium is strictly prohibited
 % Proprietary and confidential
 % Written by Tim Haas <haas@iob.rwth-aachen.de>, 2019
 
-
-
 clearvars;
 close all;
 
-
 %% load pretrained Data
 
- [file,path]=uigetfile('*.mat','Load Faster RCNN Module');  
-        Transfermodule=fullfile(path,file);
-        load(Transfermodule);
-        [file,path]=uigetfile('*.mat','Load Shape Regression Module');  
-        Shapemodule=fullfile(path,file);
-        load(Shapemodule);
-regressornet=trainedNet;
+[file,path]=uigetfile('*.mat','Load Faster RCNN Module');
+transferModule=fullfile(path,file);
+load(transferModule);
+[file,path]=uigetfile('*.mat','Load Shape Regression Module');
+shapeModule=fullfile(path,file);
+load(shapeModule);
+regressorNet=trainedNet;
 %%
 % load image(s) or video
-[FileName, PathName] = uigetfile({'*.png;*.jpg;*.bmp;*.tif;*.mp4;*.avi;*.mkv;*.mov'}, ...
+[fileName, pathName] = uigetfile({'*.png;*.jpg;*.bmp;*.tif;*.mp4;*.avi;*.mkv;*.mov'}, ...
     'Select image or video files','MultiSelect','on');
 error = false;
 
-if isequal(FileName,0)
+if isequal(fileName,0)
     errordlg('Image could not be found or loaded. Make sure to only submit supported images or video files','Error');
     
 else
-    if iscell(FileName)
+    if iscell(fileName)
         
-        for i = 1 : 1 : size(FileName,2)
-            if endsWith(FileName{1}, ".png") || endsWith(FileName{1}, ".bmp") || endsWith(FileName{1}, ".jpg") || endsWith(FileName{1}, ".jpeg") || endsWith(FileName{1}, ".tiff")
-                im = imread([PathName FileName{i}]);
-                data.images(i) = struct('cdata',im,'colormap',[]);
+        for currentImage = 1 : 1 : size(fileName,2)
+            if endsWith(fileName{1}, ".png") || endsWith(fileName{1}, ".bmp") || endsWith(fileName{1}, ".jpg") || endsWith(fileName{1}, ".jpeg") || endsWith(fileName{1}, ".tiff")
+                image = imread([pathName fileName{currentImage}]);
+                data.images(currentImage) = struct('cdata',image,'colormap',[]);
                 %todo error unequal image sizes
             else
                 error = true;
             end
         end
     else
-        if endsWith(FileName, ".png") || endsWith(FileName, ".bmp") || endsWith(FileName, ".jpg") || endsWith(FileName, ".jpeg") || endsWith(FileName, ".tiff")|| endsWith(FileName, ".JPG")
+        if endsWith(fileName, ".png") || endsWith(fileName, ".bmp") || endsWith(fileName, ".jpg") || endsWith(fileName, ".jpeg") || endsWith(fileName, ".tiff")|| endsWith(fileName, ".JPG")
             isimage = true;
-            im = imread([PathName FileName]);
-            data.images = struct('cdata',im,'colormap',[]);
-           
-            i = 1;
-        elseif endsWith(FileName, ".avi") || endsWith(FileName, ".mkv") || endsWith(FileName, ".mp4")|| endsWith(FileName, ".MOV")
+            image = imread([pathName fileName]);
+            data.images = struct('cdata',image,'colormap',[]);
+            
+            currentImage = 1;
+        elseif endsWith(fileName, ".avi") || endsWith(fileName, ".mkv") || endsWith(fileName, ".mp4")|| endsWith(fileName, ".MOV")
             ismovie = true;
-            vid = VideoReader([PathName FileName]);
+            vid = VideoReader([pathName fileName]);
             vidWidth = vid.Width;
             vidHeight = vid.Height;
             data.images = repmat(struct('cdata', zeros(vidHeight,vidWidth,3,'uint8'),'colormap',[]), vid.NumberOfFrames, 1);
-            vid = VideoReader([PathName FileName]);
-            i = 1;
+            vid = VideoReader([pathName fileName]);
+            currentImage = 1;
             while hasFrame(vid)
-            %for u=1:2 %change if for whole Video
-                data.images(i).cdata = readFrame(vid);
-                i = i+1;
+                data.images(currentImage).cdata = readFrame(vid);
+                currentImage = currentImage+1;
             end
-            i = i-1;
+            currentImage = currentImage-1;
         else
             error = true;
         end
@@ -67,91 +63,90 @@ else
     
     if ~error
         
-        data.no_images = i;
+        data.noImages = currentImage;
         
     else
         errordlg('Image could not be found or loaded. Make sure to only submit supported images or video files','Error');
-        app.delete;
     end
 end
 
 
 %%
 f = uifigure;
-detectedellipses=cell(data.no_images,1);
+detectedEllipses=cell(data.noImages,1);
+minConfLevel=0.95;
 
-for evalimage=1:data.no_images
-    evalimage/data.no_images*100
-    d = uiprogressdlg(f,'Title','Please Wait',...
+for evaluatedImage=1:data.noImages
+    evaluatedImage/data.noImages*100
+    progressBar = uiprogressdlg(f,'Title','Please Wait',...
         'Message','Run Faster RCNN module');
-    d.Value = ((evalimage*2)-1)/(data.no_images*2);
-    I=data.images(evalimage).cdata;
-    [imheight,imwidth,colchannel]=size(I);
-    if colchannel<3
-        I=repmat (I,1,1,3);
+    progressBar.Value = ((evaluatedImage*2)-1)/(data.noImages*2);
+    currentImage=data.images(evaluatedImage).cdata;
+    [imageHeight,imageWidth,colorChannel]=size(currentImage);
+    if colorChannel<3
+        currentImage=repmat (currentImage,1,1,3);
     end
-    [bboxes,scores] = detect(owndetector,I,'SelectStrongest',false,'NumStrongestRegions',Inf);
-         P=find(scores<0.95);
- bboxes(P,:)=[];
- scores(P)=[];
+    % Search bounding boxes with FasterRCNN module
+    [boundBoxes,boxConfLevel] = detect(owndetector,currentImage,'SelectStrongest',false,'NumStrongestRegions',Inf);
+    P=find(boxConfLevel<minConfLevel);
+    boundBoxes(P,:)=[];
+    boxConfLevel(P)=[];
+    % Delete overlapping boxes
+    if ~isempty(boxConfLevel)
+        [boundBoxes,boxConfLevel] = selectStrongestBbox(boundBoxes, boxConfLevel,'OverlapThreshold',0.5,'RatioType','Min');
+    end
     
-     if ~isempty(scores)
-         [bboxes2,scores2] = selectStrongestBbox(bboxes, scores,'OverlapThreshold',0.5,'RatioType','Min');
-     end
-
-
+    
     % Annotate detections in the image.
     fh=figure;
     subplot(1,2,1)
-    edg = insertShape(((rgb2gray(I))),'rectangle',bboxes2, 'LineWidth', 4, 'Color','blue');
-    imshow(edg);
+    bBoxPlot = insertShape(((rgb2gray(currentImage))),'rectangle',boundBoxes, 'LineWidth', 4, 'Color','blue');
+    imshow(bBoxPlot);
     title('Faster RCNN')
     subplot(1,2,2)
-    imshow((rgb2gray(I)));
+    imshow((rgb2gray(currentImage)));
     title('Faster RCNN + Regression CNN');
-    [boxlength,~]=size(bboxes2);
-    newbox=bboxes2;
-    posindexes=[1,2];
-    for b=1:boxlength
-        [m,index]=max(bboxes2(b,3:4));
-        diff=abs(bboxes2(b,3)-bboxes2(b,4));
-        factor=m/64;
-        newbox(b,find(posindexes~=index))=max(bboxes2(b,find(posindexes~=index))-round(diff/2),1);
-        newbox(b,3:4)=m;
-        if newbox(b,1)+newbox(b,3)>imwidth
-            newbox(b,1)=newbox(b,1)-(newbox(b,1)+newbox(b,3)-imwidth);
+    [noBoxes,~]=size(boundBoxes);
+    positionIndexes=[1,2];
+    for b=1:noBoxes
+        [m,index]=max(boundBoxes(b,3:4));
+        diff=abs(boundBoxes(b,3)-boundBoxes(b,4));
+        rescalingFactor=m/64;
+        boundBoxes(b,find(positionIndexes~=index))=max(boundBoxes(b,find(positionIndexes~=index))-round(diff/2),1);
+        boundBoxes(b,3:4)=m;
+        if boundBoxes(b,1)+boundBoxes(b,3)>imageWidth
+            boundBoxes(b,1)=boundBoxes(b,1)-(boundBoxes(b,1)+boundBoxes(b,3)-imageWidth);
         end
-        if newbox(b,1)<1
-            newbox(b,1)=1;
+        if boundBoxes(b,1)<1
+            boundBoxes(b,1)=1;
         end
-        if newbox(b,2)+newbox(b,4)>imheight
-            newbox(b,2)=newbox(b,2)-(newbox(b,2)+newbox(b,4)-imheight);
+        if boundBoxes(b,2)+boundBoxes(b,4)>imageHeight
+            boundBoxes(b,2)=boundBoxes(b,2)-(boundBoxes(b,2)+boundBoxes(b,4)-imageHeight);
         end
-        if newbox(b,2)<1
-            newbox(b,2)=1;
+        if boundBoxes(b,2)<1
+            boundBoxes(b,2)=1;
         end
-        wind=I(newbox(b,2):newbox(b,2)+newbox(b,4),newbox(b,1):newbox(b,1)+newbox(b,3));
-        wind=imresize(wind,[64 64]);
-        Bubbles(b,1:6)=(predict(regressornet,wind)).*(S)+mumean;
+        regInputWindow=currentImage(boundBoxes(b,2):boundBoxes(b,2)+boundBoxes(b,4),boundBoxes(b,1):boundBoxes(b,1)+boundBoxes(b,3));
+        regInputWindow=imresize(regInputWindow,[64 64]);
+        approxBubbles(b,1:6)=(predict(regressorNet,regInputWindow)).*(S)+mumean;
         
-        Bubbles(b,1:4)=Bubbles(b,1:4).*factor;
-        Bubbles(b,1)=Bubbles(b,1)+newbox(b,1);
-        Bubbles(b,2)=Bubbles(b,2)+newbox(b,2);
-        Bubbles(b,5)=atan(Bubbles(b,5)/Bubbles(b,6))/2;
-        d.Value = evalimage/data.no_images;
-        d.Message = 'Run shape regression CNN';
+        approxBubbles(b,1:4)=approxBubbles(b,1:4).*rescalingFactor;
+        approxBubbles(b,1)=approxBubbles(b,1)+boundBoxes(b,1);
+        approxBubbles(b,2)=approxBubbles(b,2)+boundBoxes(b,2);
+        approxBubbles(b,5)=atan(approxBubbles(b,5)/approxBubbles(b,6))/2;
+        progressBar.Value = evaluatedImage/data.noImages;
+        progressBar.Message = 'Run shape regression CNN';
         hold on;
-        y=plotellipse(Bubbles(b,1:2),Bubbles(b,3),Bubbles(b,4),Bubbles(b,5));
-        y.LineWidth=3;
-        y.Color='red';
-        %y.LineStyle=':'
+        bubbleOutline=plotellipse(approxBubbles(b,1:2),approxBubbles(b,3),approxBubbles(b,4),approxBubbles(b,5));
+        bubbleOutline.LineWidth=3;
+        bubbleOutline.Color='red';
         hold on;
-        plot(Bubbles(b,1),Bubbles(b,2),'+','MarkerSize',10);
-
+        plot(approxBubbles(b,1),approxBubbles(b,2),'+','MarkerSize',10);
+        
         
     end
-   % delete (fh)
-    detectedellipses{evalimage}=Bubbles(:,1:5);
+    % delete (fh)
+    detectedEllipses{evaluatedImage}=approxBubbles(:,1:5);
 end
 delete (f)
-save('Detectionresults.mat','detectedellipses');
+save('Detectionresults.mat','detectedEllipses');
