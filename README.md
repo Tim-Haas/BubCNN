@@ -1,6 +1,8 @@
 # BubCNN
+
+
 	 
-## Einleitung
+## Introduction
 
 BubCNN is a bubble detection system which employs a pretrained Faster RCNN module to locate
 bubbles and a pretrained shape regression CNN module to approximate the bubble shape by an
