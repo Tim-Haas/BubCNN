@@ -1,6 +1,6 @@
 # BubCNN
 
-<img src="GraphicalAbstract.PNG" width="600" height="260" class="center"> 
+<p align="center"><img src="GraphicalAbstract.PNG" width="600" height="260"> </p>
 	 
 ## Introduction
 
@@ -10,19 +10,21 @@ ellipse. It allows bubble detection without expert knowledge in digital image pr
 is applicable to a wide range of experimental setups.
 If the results are not satisfying, use the transfer learning module to customize BubCNN to your 
 images. Please share your transfer learning data to make future versions of BubCNN more general.
-Program was tested for MATLAB 2019a. 
+Program was tested for MATLAB 2019a. BubCNN requires the Deep Learning Toolbox. The transfer 
+learning module requires the Deep Learning Toolbox and the Computer Vision Toolbox.
 
-For more detailed information check the corresponding paper: 'BubCNN: Bubble detection using Faster RCNN
-and a shape regression network' (not yet published)
+For more detailed information check the corresponding paper:
+Tim Haas, Christian Schubert, Moritz Eickhoff and Herbert Pfeifer, BubCNN: Bubble detection using Faster RCNN and a shape regression network, Chemical Engineering Science 2020.
 
-Update BubCNN v1.1:
--workaround in both programs to run in 2019b
--bugfixing save/load button 
--Updated Regression and Detection Module 
--number of frames in Transfer Learning Module limited to 100 (->Speed up)
+<br><b>Update BubCNN v1.1:</b>
+<br>-workaround in both programs to run in 2019b
+<br>-bugfixing save/load button 
+<br>-Updated Regression and Detection Module 
+<br>-number of frames in Transfer Learning Module limited to 100 (->Speed up)
 
 
-Copyright (c) Institut für Industrieofenbau RWTH Aachen University  - All Rights Reserved
+
+<br>Copyright (c) Institut für Industrieofenbau RWTH Aachen University  - All Rights Reserved
 Unauthorized copying of this file, via any medium is strictly prohibited 
 Proprietary and confidential
-Written by Tim Haas <haas@iob.rwth-aachen.de>, 2019
+<br>Written by Tim Haas <haas@iob.rwth-aachen.de>, 2019
