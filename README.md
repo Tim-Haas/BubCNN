@@ -1,6 +1,6 @@
 # BubCNN
 
-
+<img src="GraphicalAbstract.png" width="600" height="300"> 
 	 
 ## Introduction
 
